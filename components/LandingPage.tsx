@@ -75,6 +75,7 @@ const TESTIMONIALS = [
 
 const LandingPage: React.FC<Props> = ({ onStart, onLogin, onOpenTerms, onOpenPrivacy }) => {
   const [currentDemo, setCurrentDemo] = useState(0);
+  const [checkoutLoading, setCheckoutLoading] = useState<'monthly' | 'annual' | null>(null);
 
   const nextDemo = () => {
     setCurrentDemo((prev) => (prev + 1) % DEMO_EXAMPLES.length);
@@ -82,6 +83,31 @@ const LandingPage: React.FC<Props> = ({ onStart, onLogin, onOpenTerms, onOpenPri
 
   const prevDemo = () => {
     setCurrentDemo((prev) => (prev - 1 + DEMO_EXAMPLES.length) % DEMO_EXAMPLES.length);
+  };
+
+  const handleCheckout = async (plan: 'monthly' | 'annual') => {
+    setCheckoutLoading(plan);
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Erro ao iniciar checkout');
+      }
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL de checkout indisponível');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível iniciar o checkout.');
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
   return (
@@ -345,12 +371,26 @@ const LandingPage: React.FC<Props> = ({ onStart, onLogin, onOpenTerms, onOpenPri
                   <span className="text-xs uppercase tracking-widest text-stone-400">Mensal</span>
                   <div className="text-3xl font-serif font-bold my-2">R$ 24,90</div>
                   <p className="text-xs text-stone-500">Cobrado mensalmente</p>
+                  <button
+                    onClick={() => handleCheckout('monthly')}
+                    disabled={checkoutLoading === 'monthly'}
+                    className="mt-4 w-full bg-white text-stone-900 font-serif py-3 rounded-xl shadow-lg hover:bg-stone-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {checkoutLoading === 'monthly' ? 'Abrindo checkout...' : 'Assinar Mensal'}
+                  </button>
                </div>
                <div className="bg-gradient-to-br from-stone-800 to-stone-700 border border-amber-500/30 p-6 rounded-2xl relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-amber-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">MAIS ESCOLHIDO</div>
                   <span className="text-xs uppercase tracking-widest text-amber-400">Anual</span>
                   <div className="text-3xl font-serif font-bold my-2 text-white">R$ 97,00</div>
                   <p className="text-xs text-stone-400">Equivalente a R$ 8,08/mês</p>
+                  <button
+                    onClick={() => handleCheckout('annual')}
+                    disabled={checkoutLoading === 'annual'}
+                    className="mt-4 w-full bg-amber-500 text-white font-serif py-3 rounded-xl shadow-lg hover:bg-amber-400 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {checkoutLoading === 'annual' ? 'Abrindo checkout...' : 'Assinar Anual'}
+                  </button>
                </div>
             </div>
          </div>

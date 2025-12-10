@@ -1,0 +1,8 @@
+{
+  "name": "LIA - Inteligência Estratégica Feminina",
+  "description": "Uma inteligência emocional prática e elegante para a mulher moderna. Clareza, intuição e leveza sob demanda.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

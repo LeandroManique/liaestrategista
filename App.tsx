@@ -1,8 +1,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
 import { UserProfile, Message, AnalysisData, AppView, RelationshipData } from './types';
 import { storage } from './services/storage';
 import { sendMessageToLia, analyzeMoment, analyzeRelationship } from './services/geminiService';
+import { auth } from './src/firebase';
+import { authApi, cloudDb } from './services/firebaseClient';
 import ProfileSettings from './components/ProfileSettings';
 import ChatInterface from './components/ChatInterface';
 import AnalysisView from './components/AnalysisView';
@@ -35,10 +38,51 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>(getInitialView());
   const [isTyping, setIsTyping] = useState(false);
   const [dailyCount, setDailyCount] = useState(storage.getUsage());
+  const [authUid, setAuthUid] = useState<string | null>(null);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
   
   const currentLimit = profile.subscriptionStatus === 'PREMIUM' 
     ? PLAN_LIMITS.PREMIUM 
     : PLAN_LIMITS.FREE;
+
+  const hydrateFromCloud = useCallback(async (uid: string) => {
+    setIsSyncingCloud(true);
+    try {
+      const data = await cloudDb.fetchUserData(uid);
+      if (data.profile) {
+        setProfile(prev => {
+          const merged = { ...prev, ...data.profile, hasOnboarded: true };
+          storage.saveProfile(merged);
+          return merged;
+        });
+        setView(AppView.CHAT);
+      }
+      if (data.messages?.length) {
+        setMessages(data.messages);
+        storage.saveMessages(data.messages);
+      }
+      if (data.analysis) {
+        setAnalysis(data.analysis);
+        storage.saveAnalysis(data.analysis);
+      }
+    } catch (error) {
+      console.error("Cloud sync error:", error);
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setAuthUid(user.uid);
+        hydrateFromCloud(user.uid);
+      } else {
+        setAuthUid(null);
+      }
+    });
+    return () => unsubscribe();
+  }, [hydrateFromCloud]);
 
   useEffect(() => {
     const now = Date.now();
@@ -53,8 +97,13 @@ const App: React.FC = () => {
     if (result) {
       setAnalysis(result);
       storage.saveAnalysis(result);
+      if (authUid) {
+        cloudDb.saveAnalysis(authUid, result).catch((error) => {
+          console.error("Erro ao salvar anÇ­lise na nuvem:", error);
+        });
+      }
     }
-  }, []);
+  }, [authUid]);
 
   const handleSendMessage = async (text: string, image?: string) => {
     const newMessage: Message = {
@@ -85,6 +134,11 @@ const App: React.FC = () => {
     const finalMessages = [...updatedMessages, replyMessage];
     setMessages(finalMessages);
     storage.saveMessages(finalMessages);
+    if (authUid) {
+      cloudDb.saveMessages(authUid, finalMessages).catch((error) => {
+        console.error("Erro ao salvar mensagens na nuvem:", error);
+      });
+    }
     setIsTyping(false);
 
     if (finalMessages.length % 5 === 0) {
@@ -108,13 +162,50 @@ const App: React.FC = () => {
     const finalMessages = [...messages, replyMessage];
     setMessages(finalMessages);
     storage.saveMessages(finalMessages);
+    if (authUid) {
+      cloudDb.saveMessages(authUid, finalMessages).catch((error) => {
+        console.error("Erro ao salvar mensagens na nuvem:", error);
+      });
+      cloudDb.saveRelationship(authUid, relData).catch((error) => {
+        console.error("Erro ao salvar relaÇõÇœo na nuvem:", error);
+      });
+    }
     setIsTyping(false);
   };
 
-  const handleSaveProfile = (newProfile: UserProfile) => {
-    setProfile(newProfile);
-    storage.saveProfile(newProfile);
-    // After saving profile (finishing onboarding), go to CHAT
+  const handleSaveProfile = async (newProfile: UserProfile) => {
+    const finalProfile = { ...newProfile, hasOnboarded: true };
+    const profileToStore = { ...finalProfile };
+    delete (profileToStore as any).password;
+
+    setProfile(profileToStore);
+    storage.saveProfile(profileToStore);
+
+    try {
+      let uid = authUid;
+      if (!uid && finalProfile.email && finalProfile.password) {
+        const cred = await authApi.signUp(finalProfile.email, finalProfile.password);
+        uid = cred.user.uid;
+        setAuthUid(uid);
+      }
+      if (uid) {
+        await cloudDb.saveProfile(uid, profileToStore);
+        if (messages.length) {
+          cloudDb.saveMessages(uid, messages).catch((error) => {
+            console.error("Erro ao sincronizar mensagens:", error);
+          });
+        }
+        if (analysis) {
+          cloudDb.saveAnalysis(uid, analysis).catch((error) => {
+            console.error("Erro ao sincronizar analise:", error);
+          });
+        }
+      }
+    } catch (error: any) {
+      console.error("Erro ao salvar perfil na nuvem:", error);
+      alert(error?.message || "NÇœo foi possÇ­vel salvar seu perfil na nuvem.");
+    }
+
     if (view === AppView.PROFILE) setView(AppView.CHAT);
   };
 
@@ -135,12 +226,16 @@ const App: React.FC = () => {
   };
 
   // Logic for Login Success
-  const handleLoginSuccess = () => {
-    // Mock recovering profile
-    const updatedProfile = { ...profile, hasOnboarded: true };
-    setProfile(updatedProfile);
-    storage.saveProfile(updatedProfile);
-    setView(AppView.CHAT);
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const cred = await authApi.signIn(email, password);
+      setAuthUid(cred.user.uid);
+      await hydrateFromCloud(cred.user.uid);
+      setView(AppView.CHAT);
+    } catch (error: any) {
+      console.error("Erro ao autenticar:", error);
+      throw error;
+    }
   };
 
   // Logic for Back button in Profile/Legal
@@ -200,7 +295,7 @@ const App: React.FC = () => {
 
           {view === AppView.LOGIN && (
             <LoginView 
-              onLoginSuccess={handleLoginSuccess}
+              onLogin={handleLogin}
               onBack={() => setView(AppView.LANDING)}
               onGoToSignup={() => setView(AppView.PROFILE)}
             />

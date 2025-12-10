@@ -1,27 +1,28 @@
-
 import React, { useState } from 'react';
 import { ArrowLeft, LogIn } from 'lucide-react';
 
 interface Props {
-  onLoginSuccess: () => void;
+  onLogin: (email: string, password: string) => Promise<void>;
   onBack: () => void;
   onGoToSignup: () => void;
 }
 
-const LoginView: React.FC<Props> = ({ onLoginSuccess, onBack, onGoToSignup }) => {
+const LoginView: React.FC<Props> = ({ onLogin, onBack, onGoToSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Simulação de login
-    setTimeout(() => {
+    setError(null);
+    try {
+      await onLogin(email, password);
+    } catch (err: any) {
+      setError(err?.message || 'Não foi possível entrar');
       setLoading(false);
-      onLoginSuccess();
-    }, 1500);
+    }
   };
 
   return (
@@ -89,6 +90,10 @@ const LoginView: React.FC<Props> = ({ onLoginSuccess, onBack, onGoToSignup }) =>
               </>
             )}
           </button>
+
+          {error && (
+            <p className="text-center text-sm text-red-500">{error}</p>
+          )}
         </form>
 
         <div className="mt-8 text-center">

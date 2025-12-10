@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { calculateNumerology } from '../services/numerology';
@@ -7,7 +6,7 @@ import { Crown, Sparkles, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 interface Props {
   profile: UserProfile;
-  onSave: (p: UserProfile) => void;
+  onSave: (p: UserProfile) => Promise<void> | void;
   onClose: () => void;
   onClearChat: () => void;
   onFullReset: () => void;
@@ -17,6 +16,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
   const [formData, setFormData] = useState(profile);
   const [showNumerologyDetails, setShowNumerologyDetails] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Recalculate numerology if name or birthdate changes
   useEffect(() => {
@@ -26,21 +26,21 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
     }
   }, [formData.name, formData.birthDate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({ ...formData, hasOnboarded: true });
-    // onClose() is handled by parent if needed, but here we just save
+    setSaving(true);
+    await onSave({ ...formData, hasOnboarded: true });
+    setSaving(false);
   };
 
   const handleLoginOrUpgrade = () => {
-    // Placeholder para a futura integração com Firebase Auth / Stripe
-    alert("Em breve: Crie sua conta para salvar seus dados na nuvem e assinar o LIA Premium.");
+    alert("Em breve: crie sua conta para salvar na nuvem e assinar o LIA Premium.");
   };
 
   return (
     <div className="h-full overflow-y-auto bg-lia-bg p-6 pb-20 animate-fade-in no-scrollbar">
       
-      {/* Header com botão de voltar */}
+      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
         <button 
           onClick={onClose} 
@@ -135,7 +135,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
               className="w-full bg-white border border-lia-accent rounded-lg p-3 text-lia-primary focus:outline-none focus:border-lia-secondary"
             >
               <option value="">Selecione</option>
-              <option value="Não sei">Não sei</option>
+              <option value="Nao sei">Nao sei</option>
               {ZODIAC_SIGNS.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -159,7 +159,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
                </select>
              </div>
              <div>
-               <label className="block text-[10px] text-lia-secondary mb-1 uppercase">Vênus</label>
+               <label className="block text-[10px] text-lia-secondary mb-1 uppercase">Venus</label>
                <select
                  value={formData.venus || ''}
                  onChange={e => setFormData({ ...formData, venus: e.target.value })}
@@ -181,7 +181,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
                </select>
              </div>
            </div>
-          <p className="text-[10px] text-lia-muted mt-2 italic">Esses dados enriquecem a análise relacional.</p>
+          <p className="text-[10px] text-lia-muted mt-2 italic">Esses dados enriquecem a analise relacional.</p>
         </div>
 
         {/* Numerology Card */}
@@ -205,7 +205,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-serif text-lia-primary">{formData.numerology.expression}</span>
-                  <span className="text-[9px] uppercase tracking-wider text-lia-secondary">Expressão</span>
+                  <span className="text-[9px] uppercase tracking-wider text-lia-secondary">Expressao</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-2xl font-serif text-lia-primary">{formData.numerology.personality}</span>
@@ -224,7 +224,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
                    <p className="text-xs text-lia-secondary leading-relaxed">{NUMEROLOGY_MEANINGS[formData.numerology.destination]}</p>
                  </div>
                  <div>
-                   <span className="text-xs font-bold text-lia-primary">Expressão {formData.numerology.expression}:</span>
+                   <span className="text-xs font-bold text-lia-primary">Expressao {formData.numerology.expression}:</span>
                    <p className="text-xs text-lia-secondary leading-relaxed">{NUMEROLOGY_MEANINGS[formData.numerology.expression]}</p>
                  </div>
                  <div>
@@ -235,7 +235,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
                    <span className="text-xs font-bold text-lia-primary">Ano Pessoal {formData.numerology.personalYear}:</span>
                    <p className="text-xs text-lia-secondary leading-relaxed">{NUMEROLOGY_MEANINGS[formData.numerology.personalYear]}</p>
                  </div>
-                 <p className="text-[10px] italic text-lia-muted mt-2 text-center">Ferramenta de autoconhecimento, não de destino.</p>
+                 <p className="text-[10px] italic text-lia-muted mt-2 text-center">Ferramenta de autoconhecimento, nao de destino.</p>
                </div>
              )}
           </div>
@@ -281,7 +281,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
                 </div>
                 {!profile.hasOnboarded && (
                   <p className="text-[10px] text-lia-muted mt-1 italic">
-                    Para garantir que suas conversas e análises fiquem salvas para sempre.
+                    Para garantir que suas conversas e analises fiquem salvas para sempre.
                   </p>
                 )}
              </div>
@@ -290,15 +290,16 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
 
         <button
           type="submit"
-          className="w-full bg-lia-primary text-white font-serif py-4 rounded-xl shadow-lg hover:bg-stone-800 transition-all mt-8"
+          disabled={saving}
+          className="w-full bg-lia-primary text-white font-serif py-4 rounded-xl shadow-lg hover:bg-stone-800 transition-all mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {profile.hasOnboarded ? 'Atualizar Perfil' : 'Começar Jornada'}
+          {saving ? 'Salvando...' : profile.hasOnboarded ? 'Atualizar Perfil' : 'Comecar Jornada'}
         </button>
         
         {/* LEGAL DISCLAIMER SMALL */}
         <div className="text-center mt-4">
            <p className="text-[10px] text-lia-muted">
-             Ao continuar, você concorda com nossos Termos de Uso e Política de Privacidade.
+             Ao continuar, voce concorda com nossos Termos de Uso e Politica de Privacidade.
            </p>
         </div>
       </form>
@@ -309,7 +310,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => { if(window.confirm('Tem certeza? Isso apaga apenas o histórico do chat.')) onClearChat(); }}
+              onClick={() => { if(window.confirm('Tem certeza? Isso apaga apenas o historico do chat.')) onClearChat(); }}
               className="w-full border border-lia-accent text-lia-secondary py-3 rounded-lg hover:bg-stone-100 transition-colors text-sm"
             >
               Zerar Conversa
@@ -319,7 +320,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
               onClick={() => { if(window.confirm('Tem certeza? Isso apaga TUDO e reinicia o app.')) onFullReset(); }}
               className="w-full border border-red-200 text-red-400 py-3 rounded-lg hover:bg-red-50 transition-colors text-sm"
             >
-              Resetar Tudo (Começar do Zero)
+              Resetar Tudo (Comecar do Zero)
             </button>
           </div>
         </div>

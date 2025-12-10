@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "profile": {
+          ".validate": "!newData.exists() || (newData.hasChildren(['name','sign','ascendant']) && newData.child('name').isString() && newData.child('sign').isString() && newData.child('ascendant').isString())"
+        },
+        "messages": {
+          "$msgId": {
+            ".validate": "!newData.exists() || (newData.hasChildren(['role','text','timestamp']) && newData.child('role').isString() && newData.child('role').val().matches(/^(user|model)$/) && newData.child('text').isString() && newData.child('text').val().length <= 8000 && newData.child('timestamp').isNumber())"
+          }
+        },
+        "analysis": {
+          ".validate": "!newData.exists() || (newData.child('lastAnalyzed').isNumber())"
+        },
+        "relationships": {
+          "$relId": {
+            ".validate": "!newData.exists() || (newData.hasChildren(['name','type','sign']) && newData.child('name').isString() && newData.child('type').isString() && newData.child('sign').isString())"
+          }
+        }
+      }
+    }
+  }
+}

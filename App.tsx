@@ -327,8 +327,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="flex justify-center bg-gray-100 min-h-screen font-sans">
-      <div className="w-full max-w-md bg-white shadow-2xl h-[100dvh] flex flex-col relative overflow-hidden">
+    <div className="flex justify-center bg-gray-100 min-h-[100svh] font-sans overflow-hidden">
+      <div className="w-full max-w-md bg-white shadow-2xl min-h-[100svh] flex flex-col relative overflow-hidden">
         
         {/* Header is shown on CHAT, RELATIONSHIPS, ANALYSIS, but NOT on LANDING, LOGIN, TERMS, PRIVACY or initial PROFILE */}
         {view !== AppView.LANDING && view !== AppView.PROFILE && view !== AppView.LOGIN && view !== AppView.TERMS && view !== AppView.PRIVACY && renderHeader()}

@@ -129,7 +129,7 @@ const LandingPage: React.FC<Props> = ({ onStart, onLogin, onOpenTerms, onOpenPri
         <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")' }}></div>
         
         <div className="inline-flex items-center justify-center w-24 h-24 mb-8 overflow-hidden">
-          <img src="/logo.png" alt="LIA" className="w-24 h-24 object-contain" />
+          <img src="/logo.png" alt="LIA" className="w-24 h-24 object-contain opacity-80" />
         </div>
         
         <h1 className="text-3xl md:text-5xl font-serif text-lia-primary mb-4 leading-tight">

@@ -318,7 +318,11 @@ const App: React.FC = () => {
 
   // Logic to start from Landing Page
   const handleStartJourney = () => {
-    setView(AppView.PROFILE);
+    if (profile.hasOnboarded) {
+      setView(AppView.CHAT);
+    } else {
+      setView(AppView.PROFILE);
+    }
   };
 
   // Logic for Login Success

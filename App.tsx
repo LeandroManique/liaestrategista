@@ -17,14 +17,28 @@ import { User, Activity, Heart } from 'lucide-react';
 import { APP_NAME, PLAN_LIMITS } from './constants';
 
 const App: React.FC = () => {
+  const PREMIUM_WHITELIST = new Set([
+    'leandro@zeithco.com',
+    'scheilafribeiro@hotmail.com',
+    'clarinha@zeithco.com',
+    'adm@zeithco.com'
+  ]);
+
+  const applyWhitelist = (profile: UserProfile): UserProfile => {
+    if (profile.email && PREMIUM_WHITELIST.has(profile.email.toLowerCase())) {
+      return { ...profile, subscriptionStatus: 'PREMIUM' };
+    }
+    return profile;
+  };
+
   const [profile, setProfile] = useState<UserProfile>(
-    storage.getProfile() || { 
+    applyWhitelist(storage.getProfile() || { 
       name: '', 
       sign: '', 
       ascendant: '', 
       hasOnboarded: false,
       subscriptionStatus: 'FREE' 
-    }
+    })
   );
   
   // Decide initial view: if not onboarded, show LANDING, otherwise CHAT
@@ -51,7 +65,7 @@ const App: React.FC = () => {
       const data = await cloudDb.fetchUserData(uid);
       if (data.profile) {
         setProfile(prev => {
-          const merged = { ...prev, ...data.profile, hasOnboarded: true };
+          const merged = applyWhitelist({ ...prev, ...data.profile, hasOnboarded: true });
           storage.saveProfile(merged);
           return merged;
         });
@@ -174,7 +188,7 @@ const App: React.FC = () => {
   };
 
   const handleSaveProfile = async (newProfile: UserProfile) => {
-    const finalProfile = { ...newProfile, hasOnboarded: true };
+    const finalProfile = applyWhitelist({ ...newProfile, hasOnboarded: true });
     const profileToStore = { ...finalProfile };
     delete (profileToStore as any).password;
 

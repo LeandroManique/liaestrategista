@@ -21,7 +21,8 @@ const App: React.FC = () => {
     'leandro@zeithco.com',
     'scheilafribeiro@hotmail.com',
     'clarinha@zeithco.com',
-    'adm@zeithco.com'
+    'adm@zeithco.com',
+    'bllart@gmail.com'
   ]);
 
   const applyWhitelist = (profile: UserProfile): UserProfile => {

@@ -32,6 +32,15 @@ const App: React.FC = () => {
     return profile;
   };
 
+  const startTrialIfNeeded = () => {
+    if (profile.subscriptionStatus === 'PREMIUM') return;
+    if (!trialStartMs) {
+      const now = Date.now();
+      setTrialStartMs(now);
+      localStorage.setItem('lia_trial_start', now.toString());
+    }
+  };
+
   const [profile, setProfile] = useState<UserProfile>(
     applyWhitelist(storage.getProfile() || { 
       name: '', 
@@ -56,6 +65,18 @@ const App: React.FC = () => {
   const [authUid, setAuthUid] = useState<string | null>(null);
   const [isSyncingCloud, setIsSyncingCloud] = useState(false);
   const [checkingSubscription, setCheckingSubscription] = useState(false);
+  const TRIAL_DURATION_MS = 5 * 60 * 1000;
+  const [trialStartMs, setTrialStartMs] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const v = localStorage.getItem('lia_trial_start');
+    return v ? parseInt(v, 10) : null;
+  });
+  const [trialExpired, setTrialExpired] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('lia_trial_expired') === '1';
+  });
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<'monthly' | 'annual' | null>(null);
   
   const currentLimit = profile.subscriptionStatus === 'PREMIUM' 
     ? PLAN_LIMITS.PREMIUM 
@@ -143,6 +164,23 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (profile.subscriptionStatus === 'PREMIUM') {
+      setTrialExpired(false);
+      setShowTrialModal(false);
+      return;
+    }
+    if (!trialStartMs || trialExpired) return;
+    const id = setInterval(() => {
+      if (trialStartMs && Date.now() - trialStartMs >= TRIAL_DURATION_MS) {
+        setTrialExpired(true);
+        setShowTrialModal(true);
+        localStorage.setItem('lia_trial_expired', '1');
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [trialStartMs, trialExpired, profile.subscriptionStatus]);
+
   const runAnalysis = useCallback(async (msgs: Message[]) => {
     const result = await analyzeMoment(msgs);
     if (result) {
@@ -157,6 +195,13 @@ const App: React.FC = () => {
   }, [authUid]);
 
   const handleSendMessage = async (text: string, image?: string) => {
+    if (profile.subscriptionStatus !== 'PREMIUM') {
+      if (trialExpired) {
+        setShowTrialModal(true);
+        return;
+      }
+      startTrialIfNeeded();
+    }
     const newMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -289,6 +334,31 @@ const App: React.FC = () => {
     }
   };
 
+  const startCheckout = async (plan: 'monthly' | 'annual') => {
+    setCheckoutLoading(plan);
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan })
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || 'Erro ao iniciar checkout');
+      }
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL de checkout indisponível');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível iniciar o checkout.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
   // Logic for Back button in Profile/Legal
   const handleBack = () => {
     if (profile.hasOnboarded) {
@@ -335,6 +405,40 @@ const App: React.FC = () => {
         
         <main className="flex-1 overflow-hidden relative">
           
+          {showTrialModal && profile.subscriptionStatus !== 'PREMIUM' && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 text-center">
+                <h3 className="text-xl font-serif text-lia-primary">Tempo de cortesia encerrado</h3>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  Para continuar conversando com a LIA, escolha um plano Premium.
+                  Acesso completo, análises profundas e seu histórico salvo.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => startCheckout('monthly')}
+                    disabled={checkoutLoading === 'monthly'}
+                    className="w-full bg-lia-primary text-white py-3 rounded-xl shadow-md hover:bg-stone-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {checkoutLoading === 'monthly' ? 'Abrindo...' : 'Mensal • R$ 24,90'}
+                  </button>
+                  <button
+                    onClick={() => startCheckout('annual')}
+                    disabled={checkoutLoading === 'annual'}
+                    className="w-full bg-amber-500 text-white py-3 rounded-xl shadow-md hover:bg-amber-400 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {checkoutLoading === 'annual' ? 'Abrindo...' : 'Anual • R$ 97,00'}
+                  </button>
+                  <button
+                    onClick={() => setShowTrialModal(false)}
+                    className="text-xs uppercase tracking-widest text-stone-500 hover:text-stone-700 transition"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {view === AppView.LANDING && (
             <LandingPage 
               onStart={handleStartJourney} 

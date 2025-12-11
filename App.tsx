@@ -300,8 +300,8 @@ const App: React.FC = () => {
   const renderHeader = () => (
     <header className="bg-lia-bg px-4 py-3 flex items-center justify-between border-b border-lia-accent sticky top-0 z-50">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 flex items-center justify-center overflow-hidden">
-          <img src="/logo.png" alt="LIA" className="w-10 h-10 object-contain" />
+        <div className="w-14 h-14 flex items-center justify-center overflow-hidden">
+          <img src="/logo.png" alt="LIA" className="w-14 h-14 object-contain" />
         </div>
         <div>
           <h1 className="font-serif text-lia-primary font-bold leading-tight">{APP_NAME}</h1>

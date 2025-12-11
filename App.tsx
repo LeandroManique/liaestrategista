@@ -54,6 +54,7 @@ const App: React.FC = () => {
   const [dailyCount, setDailyCount] = useState(storage.getUsage());
   const [authUid, setAuthUid] = useState<string | null>(null);
   const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(false);
   
   const currentLimit = profile.subscriptionStatus === 'PREMIUM' 
     ? PLAN_LIMITS.PREMIUM 
@@ -97,6 +98,41 @@ const App: React.FC = () => {
     });
     return () => unsubscribe();
   }, [hydrateFromCloud]);
+
+  const applySubscriptionStatus = useCallback(async (email?: string) => {
+    if (!email) return;
+    const lower = email.toLowerCase();
+    if (PREMIUM_WHITELIST.has(lower)) {
+      setProfile((prev) => {
+        const updated = { ...prev, subscriptionStatus: 'PREMIUM' };
+        storage.saveProfile(updated);
+        return updated;
+      });
+      return;
+    }
+    setCheckingSubscription(true);
+    try {
+      const res = await fetch(`/api/subscription-status?email=${encodeURIComponent(lower)}`);
+      const data = await res.json();
+      if (data?.status === 'ACTIVE') {
+        setProfile((prev) => {
+          const updated = { ...prev, subscriptionStatus: 'PREMIUM' };
+          storage.saveProfile(updated);
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao checar assinatura:', error);
+    } finally {
+      setCheckingSubscription(false);
+    }
+  }, [PREMIUM_WHITELIST, profile]);
+
+  useEffect(() => {
+    if (profile.email) {
+      applySubscriptionStatus(profile.email);
+    }
+  }, [profile.email, applySubscriptionStatus]);
 
   useEffect(() => {
     const now = Date.now();

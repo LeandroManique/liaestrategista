@@ -17,6 +17,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
   const [showNumerologyDetails, setShowNumerologyDetails] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   // Recalculate numerology if name or birthdate changes
   useEffect(() => {
@@ -33,8 +34,29 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
     setSaving(false);
   };
 
-  const handleLoginOrUpgrade = () => {
-    alert("Em breve: crie sua conta para salvar na nuvem e assinar o LIA Premium.");
+  const handleLoginOrUpgrade = async () => {
+    setUpgradeLoading(true);
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'monthly' })
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || 'Erro ao iniciar checkout');
+      }
+      const data = await res.json();
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL de checkout indisponível');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Não foi possível iniciar o checkout.');
+    } finally {
+      setUpgradeLoading(false);
+    }
   };
 
   return (
@@ -77,13 +99,18 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
            
            <button 
              onClick={handleLoginOrUpgrade}
+             disabled={upgradeLoading}
              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
                 profile.subscriptionStatus === 'PREMIUM'
                 ? 'bg-stone-700 text-stone-300 hover:bg-stone-600'
-                : 'bg-lia-primary text-white hover:bg-stone-700 shadow-md'
+                : 'bg-lia-primary text-white hover:bg-stone-700 shadow-md disabled:opacity-60 disabled:cursor-not-allowed'
              }`}
            >
-             {profile.subscriptionStatus === 'PREMIUM' ? 'Gerenciar' : 'Assinar Premium'}
+             {upgradeLoading
+               ? 'Abrindo checkout...'
+               : profile.subscriptionStatus === 'PREMIUM'
+                 ? 'Gerenciar'
+                 : 'Assinar Premium'}
            </button>
         </div>
       )}

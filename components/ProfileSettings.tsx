@@ -17,7 +17,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
   const [showNumerologyDetails, setShowNumerologyDetails] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState<'monthly' | 'annual' | null>(null);
 
   // Recalculate numerology if name or birthdate changes
   useEffect(() => {
@@ -34,13 +34,13 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
     setSaving(false);
   };
 
-  const handleLoginOrUpgrade = async () => {
-    setUpgradeLoading(true);
+  const handleLoginOrUpgrade = async (plan: 'monthly' | 'annual') => {
+    setUpgradeLoading(plan);
     try {
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'monthly' })
+        body: JSON.stringify({ plan })
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -55,7 +55,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
     } catch (err: any) {
       alert(err?.message || 'Não foi possível iniciar o checkout.');
     } finally {
-      setUpgradeLoading(false);
+      setUpgradeLoading(null);
     }
   };
 
@@ -97,21 +97,28 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
              </div>
            </div>
            
-           <button 
-             onClick={handleLoginOrUpgrade}
-             disabled={upgradeLoading}
-             className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                profile.subscriptionStatus === 'PREMIUM'
-                ? 'bg-stone-700 text-stone-300 hover:bg-stone-600'
-                : 'bg-lia-primary text-white hover:bg-stone-700 shadow-md disabled:opacity-60 disabled:cursor-not-allowed'
-             }`}
-           >
-             {upgradeLoading
-               ? 'Abrindo checkout...'
-               : profile.subscriptionStatus === 'PREMIUM'
-                 ? 'Gerenciar'
-                 : 'Assinar Premium'}
-           </button>
+           {profile.subscriptionStatus === 'PREMIUM' ? (
+             <span className="text-xs text-stone-300 uppercase tracking-widest">Ativa</span>
+           ) : (
+             <div className="flex flex-col md:flex-row gap-2">
+               <button
+                 type="button"
+                 onClick={() => handleLoginOrUpgrade('monthly')}
+                 disabled={upgradeLoading === 'monthly'}
+                 className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-lia-primary text-white hover:bg-stone-700 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+               >
+                 {upgradeLoading === 'monthly' ? 'Abrindo...' : 'Mensal (R$ 24,90)'}
+               </button>
+               <button
+                 type="button"
+                 onClick={() => handleLoginOrUpgrade('annual')}
+                 disabled={upgradeLoading === 'annual'}
+                 className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all bg-amber-500 text-white hover:bg-amber-400 shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+               >
+                 {upgradeLoading === 'annual' ? 'Abrindo...' : 'Anual (R$ 97,00)'}
+               </button>
+             </div>
+           )}
         </div>
       )}
 

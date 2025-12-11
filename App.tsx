@@ -77,6 +77,7 @@ const App: React.FC = () => {
   });
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<'monthly' | 'annual' | null>(null);
+  const [pendingWarning, setPendingWarning] = useState(false);
   
   const currentLimit = profile.subscriptionStatus === 'PREMIUM' 
     ? PLAN_LIMITS.PREMIUM 
@@ -168,6 +169,7 @@ const App: React.FC = () => {
     if (profile.subscriptionStatus === 'PREMIUM') {
       setTrialExpired(false);
       setShowTrialModal(false);
+      setPendingWarning(false);
       return;
     }
     if (!trialStartMs || trialExpired) return;
@@ -201,6 +203,9 @@ const App: React.FC = () => {
         return;
       }
       startTrialIfNeeded();
+      if (trialStartMs && Date.now() - trialStartMs >= TRIAL_DURATION_MS - 30000 && !pendingWarning) {
+        setPendingWarning(true);
+      }
     }
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -227,7 +232,18 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
-    const finalMessages = [...updatedMessages, replyMessage];
+    let finalMessages = [...updatedMessages, replyMessage];
+    if (pendingWarning) {
+      const warning: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'model',
+        text: "Amiga, avisando rapidinho: seu tempo gratuito de hoje está quase acabando. Se quiser seguir comigo sem limite, posso abrir os planos para você escolher.",
+        timestamp: Date.now()
+      };
+      finalMessages = [...finalMessages, warning];
+      setPendingWarning(false);
+    }
+
     setMessages(finalMessages);
     storage.saveMessages(finalMessages);
     if (authUid) {
@@ -417,6 +433,15 @@ const App: React.FC = () => {
                   Para continuar conversando com a LIA, escolha um plano Premium.
                   Acesso completo, análises profundas e seu histórico salvo.
                 </p>
+                <div className="bg-stone-50 border border-stone-100 rounded-xl p-3 text-left text-xs text-stone-600">
+                  <p className="font-semibold text-stone-700 mb-1">Você libera:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Conversas ilimitadas</li>
+                    <li>Histórico salvo na nuvem</li>
+                    <li>Análises estratégicas completas</li>
+                    <li>Leituras com fotos e relações</li>
+                  </ul>
+                </div>
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => startCheckout('monthly')}

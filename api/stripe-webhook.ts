@@ -82,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'customer.subscription.updated':
         {
           const sub = event.data.object as Stripe.Subscription;
-          const email = (sub.customer_email as string) || (sub as any)?.customer_details?.email;
+          const email = (sub as any).customer_email as string | undefined;
           if (email) {
             const active = sub.status === 'active' || sub.status === 'trialing';
             await setPremiumStatus(email, active);
@@ -90,10 +90,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         break;
       case 'customer.subscription.deleted':
-      case 'customer.subscription.canceled':
         {
           const sub = event.data.object as Stripe.Subscription;
-          const email = (sub.customer_email as string) || (sub as any)?.customer_details?.email;
+          const email = (sub as any).customer_email as string | undefined;
           if (email) {
             await setPremiumStatus(email, false);
           }

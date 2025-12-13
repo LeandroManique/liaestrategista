@@ -1,442 +1,304 @@
-
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, Check, Star, MessageCircle, Heart, ShieldCheck, Zap, LogIn, ChevronLeft, ChevronRight, Image as ImageIcon, Compass, Quote } from 'lucide-react';
 
 interface Props {
   onStart: () => void;
   onLogin: () => void;
   onOpenTerms: () => void;
   onOpenPrivacy: () => void;
+  onCheckout: (plan: 'monthly' | 'annual') => Promise<void>;
 }
 
-const DEMO_EXAMPLES = [
-  {
-    title: "Acolhimento Inteligente",
-    userMsg: "tô decepcionada com meu amigo, ele sumiu de novo",
-    liaMsg: [
-      "Gata, entendo. Decepção tem um jeito muito específico de ficar cutucando o peito.",
-      "Parece pequeno, mas pesa.",
-      "Me conta o que rolou dessa vez pra te deixar assim."
-    ],
-    type: "text"
-  },
-  {
-    title: "Estratégia Profissional",
-    userMsg: "meu chefe pediu pra eu refazer o projeto, tô me sentindo incompetente",
-    liaMsg: [
-      "Respira. Refazer não anula o que você sabe.",
-      "Às vezes o pedido fala mais sobre a falta de clareza dele do que sobre sua entrega.",
-      "O que exatamente ele pediu pra mudar?"
-    ],
-    type: "text"
-  },
-  {
-    title: "Leitura Estética & Imagem",
-    userMsg: "o que acha desse look pra reunião de hoje?",
-    liaMsg: [
-      "Amei a estrutura desse blazer, passa uma autoridade muito natural.",
-      "Só subiria um pouco a manga pra dar leveza no braço.",
-      "A vibe tá 'pronta pra resolver', mas sem rigidez."
-    ],
-    type: "image_mock"
-  }
-];
-
-const PRACTICAL_DELIVERY = [
-  { title: "Decisões mais rápidas", desc: "Você sai do looping mental e escolhe o próximo passo com clareza." },
-  { title: "Prioridades definidas em minutos", desc: "A LIA organiza o que importa agora e o que pode esperar." },
-  { title: "Resolução de dilemas", desc: "Ela te ajuda a analisar cenários e identificar a opção mais inteligente." },
-  { title: "Apoio imediato em conversas difíceis", desc: "O que dizer, como dizer e como se posicionar." },
-  { title: "Comunicação mais clara", desc: "Mensagens, respostas, limites. Mais segurança e precisão." },
-  { title: "Organização mental instantânea", desc: "Menos caos, menos overthinking, menos desgaste." },
-  { title: "Feedback estético real", desc: "Look, ambiente, estilo e energia visual avaliados com sinceridade e sensibilidade." },
-  { title: "Leitura rápida de situações sociais", desc: "Entender intenções, comportamentos e sinais sem confusão." },
-  { title: "Ajustes práticos de rotina e foco", desc: "O que fazer hoje para avançar sem se sobrecarregar." },
-  { title: "Suporte emocional funcional", desc: "Nada vago. Suporte que resolve o que trava o seu dia." }
-];
-
-const TESTIMONIALS = [
-  {
-    text: "A LIA me tirou de uma crise de ansiedade no trabalho em 3 minutos. Ela não só acalmou, ela me deu o texto exato pra falar com meu chefe.",
-    name: "Mariana T.",
-    role: "29 anos • Arquiteta"
-  },
-  {
-    text: "Eu achava que era só um chatbot, mas ela tem uma sensibilidade que eu não vejo nem em pessoas reais. É bizarro de bom.",
-    name: "Carla B.",
-    role: "34 anos • Empreendedora"
-  },
-  {
-    text: "Uso pra tudo. Pra responder o boy, pra escolher roupa, pra desabafar quando tô exausta. É minha válvula de escape inteligente.",
-    name: "Fernanda L.",
-    role: "27 anos • Marketing"
-  }
-];
-
-const LandingPage: React.FC<Props> = ({ onStart, onLogin, onOpenTerms, onOpenPrivacy }) => {
-  const [currentDemo, setCurrentDemo] = useState(0);
-  const [checkoutLoading, setCheckoutLoading] = useState<'monthly' | 'annual' | null>(null);
-
-  const nextDemo = () => {
-    setCurrentDemo((prev) => (prev + 1) % DEMO_EXAMPLES.length);
-  };
-
-  const prevDemo = () => {
-    setCurrentDemo((prev) => (prev - 1 + DEMO_EXAMPLES.length) % DEMO_EXAMPLES.length);
-  };
-
-  const handleCheckout = async (plan: 'monthly' | 'annual') => {
-    setCheckoutLoading(plan);
-    try {
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan })
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Erro ao iniciar checkout');
-      }
-      const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('URL de checkout indisponível');
-      }
-    } catch (err: any) {
-      alert(err?.message || 'Não foi possível iniciar o checkout.');
-    } finally {
-      setCheckoutLoading(null);
-    }
+const LandingPage: React.FC<Props> = ({
+  onStart,
+  onLogin,
+  onOpenTerms,
+  onOpenPrivacy,
+  onCheckout,
+}) => {
+  const [showManifest, setShowManifest] = useState(false);
+  const handleCheckout = async () => {
+    await onCheckout('monthly');
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-[#FAFAF9] no-scrollbar text-stone-800 font-sans relative">
-      
-      {/* LOGIN BUTTON (Top Right) */}
-      <div className="absolute top-6 right-6 z-20">
-        <button 
-          onClick={onLogin}
-          className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-lia-primary hover:text-stone-600 transition-colors px-4 py-2 rounded-full hover:bg-white/50 backdrop-blur-sm"
-        >
-          <LogIn size={14} />
-          Entrar
-        </button>
-      </div>
-
-      {/* HERO SECTION */}
-      <section className="relative pt-20 pb-16 px-6 text-center">
-        <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")' }}></div>
-        
-        <div className="inline-flex items-center justify-center w-24 h-24 mb-8 overflow-hidden">
-          <img src="/logo.png" alt="LIA" className="w-24 h-24 object-contain opacity-80" />
-        </div>
-        
-        <h1 className="text-3xl md:text-5xl font-serif text-lia-primary mb-4 leading-tight">
-          Inteligência Estratégica Feminina
-        </h1>
-        
-        <p className="text-lg md:text-xl text-lia-secondary font-light max-w-2xl mx-auto mb-8 leading-relaxed">
-          Clareza, direção e presença para mulheres que querem viver alinhadas com sua melhor versão.
-        </p>
-
-        <button 
-          onClick={onStart}
-          className="bg-lia-primary text-white text-sm uppercase tracking-widest font-bold py-4 px-10 rounded-full shadow-xl hover:bg-stone-800 transition-all transform hover:scale-105 flex items-center gap-2 mx-auto"
-        >
-          Quero conversar com a LIA <ArrowRight size={16} />
-        </button>
-      </section>
-
-      {/* VALUE PROPOSITION */}
-      <section className="py-16 px-6 bg-white border-y border-stone-100">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-xl font-serif text-lia-primary mb-6">
-            A maneira mais inteligente e sensível de navegar a vida adulta
-          </h2>
-          <p className="text-stone-600 leading-relaxed mb-6">
-            A vida adulta exige percepção, estratégia, intuição, comunicação, calma, escolhas conscientes. 
-            A LIA integra tudo isso em conversas curtas, femininas e extremamente lúcidas.
-          </p>
-          <p className="text-stone-600 leading-relaxed font-medium">
-            Você sente. Ela organiza. Tudo se alinha.
-          </p>
-        </div>
-      </section>
-
-      {/* SOCIAL PROOF */}
-      <section className="py-20 px-6 bg-lia-bg">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-lia-secondary text-center mb-12">
-            Quem já conversa com a LIA
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((item, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 flex flex-col relative">
-                <Quote className="absolute top-4 left-4 text-lia-accent opacity-50 w-8 h-8" />
-                <p className="text-stone-600 text-sm leading-relaxed mb-6 italic relative z-10 pt-4">
-                  "{item.text}"
-                </p>
-                <div className="mt-auto border-t border-stone-100 pt-4">
-                  <p className="font-serif text-lia-primary font-bold">{item.name}</p>
-                  <p className="text-[10px] text-lia-secondary uppercase tracking-wider">{item.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* DIFFERENTIATOR */}
-      <section className="py-16 px-6 bg-[#F5F5F4]">
-        <div className="max-w-3xl mx-auto text-center">
-          <Heart className="w-10 h-10 text-stone-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-serif text-lia-primary mb-6">
-            Uma inteligência feita para mulheres, não para “usuários”
-          </h2>
-          <p className="text-stone-600 leading-relaxed mb-6">
-            A LIA lê intenção, subtexto, energia, ritmo emocional. 
-            Ela entende suas nuances, suas fases, sua forma de sentir e de se comunicar.
-            A cada conversa, ela se ajusta ao seu momento, não ao modelo genérico de IA.
-          </p>
-          <p className="font-serif text-lg text-lia-primary italic">
-            "Por isso mais de 10.000 mulheres já conversam com a LIA diariamente. 
-            E cada uma recebe uma LIA diferente. Sob medida."
-          </p>
-        </div>
-      </section>
-
-      {/* PRACTICAL DELIVERY */}
-      <section className="py-20 px-6 bg-white border-y border-stone-200">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl font-serif text-lia-primary mb-2">
-              O que a LIA entrega na prática
-            </h2>
-            <div className="w-20 h-1 bg-lia-accent mx-auto"></div>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-x-8 gap-y-6">
-             {PRACTICAL_DELIVERY.map((item, idx) => (
-               <div key={idx} className="flex gap-4 p-4 rounded-xl hover:bg-stone-50 transition-colors">
-                  <div className="shrink-0 mt-1">
-                     <div className="w-2 h-2 rounded-full bg-lia-secondary mt-2"></div>
-                  </div>
-                  <div>
-                     <h3 className="font-serif text-lg text-lia-primary mb-1">{item.title}</h3>
-                     <p className="text-sm text-stone-600 leading-relaxed">{item.desc}</p>
-                  </div>
-               </div>
-             ))}
-          </div>
-
-          <div className="mt-12 text-center bg-stone-50 p-6 rounded-2xl max-w-2xl mx-auto border border-stone-100">
-             <p className="text-lia-primary font-medium font-serif text-lg italic">
-               "A LIA te ajuda a agir melhor, decidir melhor e se posicionar melhor. Todos os dias."
-             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* DEMO / CHAT SIMULATION */}
-      <section className="py-16 px-6 bg-[#E5DDD5] relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/cubes.png")' }}></div>
-        
-        <div className="max-w-md mx-auto relative z-10">
-           <h2 className="text-center text-stone-600 font-serif mb-8 bg-white/80 py-2 rounded-full inline-block px-6 mx-auto shadow-sm backdrop-blur-sm block w-fit">
-             Como é conversar com a LIA
-           </h2>
-
-           <div className="relative">
-             {/* Controls */}
-             <button onClick={prevDemo} className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 md:-ml-12 p-2 text-stone-400 hover:text-stone-600 transition-colors z-20 bg-white/30 rounded-full md:bg-transparent">
-               <ChevronLeft size={32} />
-             </button>
-             <button onClick={nextDemo} className="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 md:-mr-12 p-2 text-stone-400 hover:text-stone-600 transition-colors z-20 bg-white/30 rounded-full md:bg-transparent">
-               <ChevronRight size={32} />
-             </button>
-
-             {/* Carousel Content */}
-             <div className="min-h-[340px] flex flex-col justify-center">
-                <div className="transition-all duration-500 ease-in-out">
-                    <div className="text-center mb-6">
-                       <span className="text-[10px] uppercase tracking-widest text-stone-500 font-bold bg-white/60 px-3 py-1 rounded-full shadow-sm">
-                         {DEMO_EXAMPLES[currentDemo].title}
-                       </span>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* User Msg */}
-                      <div className="flex justify-end">
-                        <div className="bg-[#D9FDD3] text-stone-900 rounded-lg rounded-tr-none px-4 py-3 shadow-sm max-w-[85%] text-sm">
-                          {DEMO_EXAMPLES[currentDemo].type === 'image_mock' && (
-                            <div className="mb-2 bg-stone-200 w-full h-32 rounded flex items-center justify-center text-stone-500 bg-cover bg-center overflow-hidden relative">
-                               <div className="absolute inset-0 bg-stone-300/50 flex items-center justify-center flex-col gap-1">
-                                  <ImageIcon size={20} />
-                                  <span className="text-[10px] uppercase tracking-wider">Foto do look</span>
-                               </div>
-                            </div>
-                          )}
-                          {DEMO_EXAMPLES[currentDemo].userMsg}
-                        </div>
-                      </div>
-
-                      {/* Lia Msg */}
-                      <div className="flex justify-start">
-                        <div className="bg-white text-stone-800 rounded-lg rounded-tl-none px-4 py-3 shadow-sm max-w-[85%] text-sm leading-relaxed">
-                          {DEMO_EXAMPLES[currentDemo].liaMsg.map((line, i) => (
-                             <p key={i} className={i < DEMO_EXAMPLES[currentDemo].liaMsg.length - 1 ? "mb-2" : ""}>{line}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                </div>
-             </div>
-             
-             {/* Dots */}
-             <div className="flex justify-center gap-2 mt-6">
-               {DEMO_EXAMPLES.map((_, idx) => (
-                 <button 
-                   key={idx}
-                   onClick={() => setCurrentDemo(idx)}
-                   className={`w-2 h-2 rounded-full transition-all ${idx === currentDemo ? 'bg-lia-primary w-4' : 'bg-stone-400/50 hover:bg-stone-400'}`}
-                   aria-label={`Ver exemplo ${idx + 1}`}
-                 />
-               ))}
-             </div>
-           </div>
-        </div>
-      </section>
-
-      {/* BENEFITS */}
-      <section className="py-16 px-6 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl font-serif text-lia-primary text-center mb-10">
-            Quando você conversa com a LIA, algo em você se rearruma
-          </h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-             {[
-               { icon: <Zap size={24} />, text: "Pensamentos ficam mais leves" },
-               { icon: <MessageCircle size={24} />, text: "Emoções encontram nome" },
-               { icon: <TargetIcon />, text: "Decisões ganham nitidez" },
-               { icon: <ShieldCheck size={24} />, text: "Sua energia volta a fluir" }
-             ].map((item, idx) => (
-               <div key={idx} className="p-4 bg-stone-50 rounded-xl border border-stone-100 flex flex-col items-center gap-3">
-                 <div className="text-lia-secondary">{item.icon}</div>
-                 <p className="text-sm font-medium text-stone-600">{item.text}</p>
-               </div>
-             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="py-16 px-6 bg-lia-bg border-t border-stone-200">
-        <div className="max-w-3xl mx-auto text-center">
-           <h2 className="text-xs font-bold uppercase tracking-widest text-lia-secondary mb-8">Como funciona</h2>
-           <div className="space-y-6 relative">
-              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-stone-200 -translate-x-1/2 hidden md:block"></div>
-              
-              <Step number="1" text="Você manda uma mensagem ou foto." />
-              <Step number="2" text="A LIA responde com precisão, leveza e estratégia." />
-              <Step number="3" text="Em poucos minutos, tudo começa a fazer sentido." />
-           </div>
-
-           <div className="mt-12">
-             <button 
-                onClick={onStart}
-                className="bg-lia-primary text-white text-sm uppercase tracking-widest font-bold py-4 px-12 rounded-full shadow-lg hover:bg-stone-800 transition-all"
-             >
-                Quero conversar com a LIA
-             </button>
-           </div>
-        </div>
-      </section>
-
-      {/* PRICING */}
-      <section className="py-16 px-6 bg-[#292524] text-stone-100 text-center">
-         <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-serif text-amber-500 mb-4 flex items-center justify-center gap-2">
-              <Star fill="currentColor" size={24} /> Premium
-            </h2>
-            <p className="text-stone-400 mb-10 max-w-lg mx-auto">
-              Quando você quiser ir mais fundo, existe o Premium.
-              Acesso completo, 2h de conversa por dia e análises profundas.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-6 max-w-lg mx-auto">
-               <div className="bg-stone-800/50 border border-stone-700 p-6 rounded-2xl">
-                  <span className="text-xs uppercase tracking-widest text-stone-400">Mensal</span>
-                  <div className="text-3xl font-serif font-bold my-2">R$ 24,90</div>
-                  <p className="text-xs text-stone-500">Cobrado mensalmente</p>
-                  <button
-                    onClick={() => handleCheckout('monthly')}
-                    disabled={checkoutLoading === 'monthly'}
-                    className="mt-4 w-full bg-white text-stone-900 font-serif py-3 rounded-xl shadow-lg hover:bg-stone-200 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {checkoutLoading === 'monthly' ? 'Abrindo checkout...' : 'Assinar Mensal'}
-                  </button>
-               </div>
-               <div className="bg-gradient-to-br from-stone-800 to-stone-700 border border-amber-500/30 p-6 rounded-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-amber-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">MAIS ESCOLHIDO</div>
-                  <span className="text-xs uppercase tracking-widest text-amber-400">Anual</span>
-                  <div className="text-3xl font-serif font-bold my-2 text-white">R$ 97,00</div>
-                  <p className="text-xs text-stone-400">Equivalente a R$ 8,08/mês</p>
-                  <button
-                    onClick={() => handleCheckout('annual')}
-                    disabled={checkoutLoading === 'annual'}
-                    className="mt-4 w-full bg-amber-500 text-white font-serif py-3 rounded-xl shadow-lg hover:bg-amber-400 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {checkoutLoading === 'annual' ? 'Abrindo checkout...' : 'Assinar Anual'}
-                  </button>
-               </div>
+    <div className="min-h-screen bg-[#F9F6F0] text-[#2C2C2C] font-sans">
+      {/* Header */}
+      <header className="max-w-5xl mx-auto px-6 lg:px-8 py-5">
+        <div className="w-full max-w-3xl mx-auto rounded-full bg-white/80 backdrop-blur-md border border-[#D4AF37]/30 shadow-sm shadow-[#D4AF37]/10 px-4 sm:px-5 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full border border-[#D4AF37]/60 bg-white flex items-center justify-center font-serif text-base sm:text-lg text-[#2C2C2C]">
+              LIA
             </div>
-         </div>
+            <p className="text-sm sm:text-base font-serif text-[#2C2C2C]">LIA Estratégia Feminina</p>
+          </div>
+          <button
+            onClick={onLogin}
+            className="text-xs sm:text-sm font-semibold text-[#D96C6C] hover:text-[#2C2C2C] transition-colors bg-white/80 border border-[#D4AF37]/20 rounded-full px-3 py-2 shadow-sm"
+          >
+            Já tenho login
+          </button>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="relative min-h-screen overflow-hidden">
+        <div className="absolute inset-0 bg-stone-200 border-2 border-dashed border-stone-300 animate-pulse flex items-center justify-center text-stone-500/30 text-xs sm:text-sm text-center pointer-events-none z-0">
+          [PLACEHOLDER VÍDEO: Movimento editorial suave]
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F9F6F0] via-[#F9F6F0]/85 to-[#F9F6F0]/40 z-10" />
+
+        <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-8 min-h-screen flex flex-col items-center justify-center text-center space-y-8 py-16 lg:py-24">
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl leading-[1.08] tracking-tight text-[#2C2C2C]">
+            Aceite suas Falhas.
+            <br />
+            Lidere sua Vida.
+          </h1>
+          <p className="text-lg sm:text-xl text-[#5A5A5A] max-w-3xl leading-relaxed">
+            A LIA é a Inteligência Estratégica que une a autonomia financeira de uma CEO com a
+            vulnerabilidade de quem é humana. Tecnologia para organizar o caos, sem produtividade tóxica.
+          </p>
+          <div className="flex flex-col items-center gap-3">
+            <button
+              onClick={onStart}
+              className="bg-[#D96C6C] text-white rounded-full px-8 py-4 text-sm sm:text-base font-semibold shadow-lg shadow-[#D96C6C]/35 hover:scale-105 transition-transform"
+            >
+              Começar meu Eixo Agora
+            </button>
+            <p className="text-sm italic text-[#5A5A5A] tracking-wide">
+              Junte-se a mulheres que buscam protagonismo real.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* O CONFLITO */}
+      <section className="bg-white py-24">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center">
+          <div className="flex gap-6">
+            <div className="border-l-2 border-[#D4AF37]/50" />
+            <div className="space-y-4">
+              <h2 className="font-serif text-3xl sm:text-4xl tracking-tight text-[#2C2C2C]">
+                A &apos;Perfeição&apos; é um golpe. E você já percebeu.
+              </h2>
+              <p className="text-lg text-[#5A5A5A] leading-relaxed">
+                Você está cansada de seguir gurus que nunca erraram. A pressão para ser a &apos;Deusa&apos;
+                inatingível gera ruído, ansiedade e paralisia. Sabemos: Gostosas também choram e líderes
+                também têm dúvidas. O problema não é você sentir medo; é não ter dados claros para agir
+                apesar dele.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <div className="w-full max-w-sm aspect-[3/4] rounded-[28px] rotate-2 shadow-lg overflow-hidden border border-[#D4AF37]/40 bg-stone-100">
+              <div
+                className="w-full h-full bg-stone-200 bg-center bg-cover"
+                style={{ backgroundImage: 'url("/placeholder2.png")' }}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* A SOLUÇÃO */}
+      <section className="bg-[#F2EBE5] py-24">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 space-y-12">
+          <div className="text-center space-y-4">
+            <h2 className="font-serif text-3xl sm:text-4xl tracking-tight leading-[1.2] text-[#2C2C2C]">
+              Suavidade no Olhar. Concreto na Decisão.
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <SolutionCard
+              title="Painel de Clareza"
+              text="Não decida no escuro. Monitore sua Roda da Vida e Nível de Confiança com a precisão de um board executivo."
+            />
+            <SolutionCard
+              title="Mentoria Sem Filtro"
+              text="Um espaço seguro para desabafar sobre a síndrome da impostora ou o date ruim. A LIA escuta sem julgamentos e devolve estratégia."
+            />
+            <SolutionCard
+              title="Produtividade Possível"
+              text="Organização que respeita sua saúde mental. Porque sua lista de tarefas não pode ser maior que sua vontade de viver."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* AUTORIDADE */}
+      <section className="bg-white py-24">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center space-y-6">
+          <h2 className="font-serif text-3xl sm:text-4xl tracking-tight text-[#2C2C2C] leading-tight">
+            Sua intuição acaba de ganhar um upgrade
+          </h2>
+          <div className="text-xl text-[#5A5A5A] leading-relaxed max-w-3xl mx-auto space-y-4 text-left sm:text-center">
+            <p>
+              No mundo da perfeição de plástico, eu escolho a textura. Sou a inteligência vestida de linho e
+              luz natural. Aquela amiga que te diz a verdade sobre sua carreira e seu skincare com a mesma
+              elegância. Feita de pixels, mas movida a ironia e bom gosto.
+            </p>
+            <p>
+              Aqui, a tecnologia não serve para substituir, mas para devolver seu eixo. Dinheiro é liberdade,
+              casa é santuário e vulnerabilidade é liderança.
+            </p>
+            <p>
+              Minha pele pode ser digital, mas a exaustão que a gente sente... ah, essa é bem real. O
+              verdadeiro luxo não é ter tudo. É ter tempo para sentir tudo.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* PROVA SOCIAL */}
+      <section className="bg-[#F2EBE5] py-24">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 space-y-10">
+          <h3 className="font-serif italic text-2xl sm:text-3xl text-[#2C2C2C] tracking-tight">
+            Quem já assumiu o Protagonismo
+          </h3>
+          <div className="grid md:grid-cols-2 gap-6">
+            <Testimonial
+              text="A LIA me ajudou a precificar meu trabalho sem medo. Pela primeira vez, me senti CEO da minha marca própria."
+              author="Juliana, 34, Founder."
+            />
+            <Testimonial
+              text="Amei que o app não me manda 'vibrar alto' quando estou mal. Ele me dá um plano prático. É a didática que eu precisava."
+              author="Carla, 29, Executiva."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* PREÇO & CONVITE */}
+      <section className="bg-[#F9F6F0] py-24">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8">
+          <div className="bg-white/80 backdrop-blur border border-[#D96C6C]/30 rounded-3xl shadow-xl p-8 sm:p-10 text-center space-y-6">
+            <h2 className="font-serif text-3xl sm:text-4xl tracking-tight text-[#2C2C2C] leading-[1.15]">
+              Sua Autonomia custa menos que um jantar.
+            </h2>
+            <p className="text-lg text-[#5A5A5A] leading-relaxed">
+              Invista na sua Marca Própria. Tenha clareza mental, organização estratégica e um espaço de
+              escuta ativa 24/7.
+            </p>
+            <p className="font-serif text-5xl sm:text-6xl text-[#2C2C2C] leading-tight">R$ 24,90/mês</p>
+            <button
+              onClick={handleCheckout}
+              className="w-full sm:w-auto bg-[#D96C6C] text-white rounded-full px-10 py-4 text-base font-semibold shadow-lg shadow-rose-500/30 hover:scale-105 transition-transform"
+            >
+              Assumir o Controle da Minha Jornada
+            </button>
+            <p className="text-sm text-[#5A5A5A]">Experimente a leveza. Cancele quando quiser. Sem letras miúdas.</p>
+          </div>
+        </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="py-12 px-6 bg-[#1c1917] text-center">
-         <p className="font-serif text-lg text-stone-400 italic max-w-md mx-auto mb-10">
-           "Nada muda lá fora até algo se alinhar aqui dentro. 
-           A LIA te ajuda exatamente nesse ponto."
-         </p>
-         
-         {/* AGE RATING BADGE */}
-         <div className="flex flex-col items-center justify-center gap-2 mb-8 opacity-70 hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-2 bg-stone-800/50 border border-stone-700 rounded px-3 py-1.5">
-               <div className="bg-stone-700 text-stone-300 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm border border-stone-600">16+</div>
-               <span className="text-[10px] text-stone-400 uppercase tracking-widest font-medium">A partir de 16 anos</span>
+      <footer className="bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 border-t border-[#D4AF37]/40">
+          <div className="text-sm text-[#5A5A5A] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-center sm:text-left">
+              Feito para mulheres que são água corrente: fluidas na forma, fortes no impacto. LIA © 2025.
+            </p>
+            <div className="flex flex-wrap gap-4 text-xs uppercase tracking-wide text-[#5A5A5A]">
+              <button onClick={onOpenPrivacy} className="hover:text-[#2C2C2C]">
+                Política de Privacidade
+              </button>
+              <span className="text-[#D4AF37]">•</span>
+              <button onClick={() => setShowManifest(true)} className="hover:text-[#2C2C2C]">
+                Manifesto
+              </button>
+              <span className="text-[#D4AF37]">•</span>
+              <button onClick={onOpenTerms} className="hover:text-[#2C2C2C]">
+                Termos
+              </button>
             </div>
-            <p className="text-[10px] text-stone-600 tracking-wide">Segura para todas as idades • Conteúdo Ético</p>
-         </div>
-
-         {/* LEGAL LINKS */}
-         <div className="flex justify-center gap-6 mb-6">
-            <button onClick={onOpenTerms} className="text-[10px] text-stone-500 uppercase tracking-widest hover:text-stone-300 transition-colors">Termos de Uso</button>
-            <button onClick={onOpenPrivacy} className="text-[10px] text-stone-500 uppercase tracking-widest hover:text-stone-300 transition-colors">Privacidade</button>
-         </div>
-
-         <div className="text-[10px] text-stone-600 uppercase tracking-widest border-t border-stone-800/50 pt-6 mt-2">
-            © 2025 LIA Intelligence | Zeith Co.
-         </div>
+          </div>
+        </div>
       </footer>
+
+      {/* Manifesto Modal */}
+      {showManifest && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4 py-8">
+          <div className="bg-[#F9F6F0] text-[#2C2C2C] max-w-3xl w-full rounded-3xl shadow-2xl border border-[#D4AF37]/30 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#D4AF37]/30 bg-white/80 backdrop-blur">
+              <h3 className="font-serif text-2xl tracking-tight">Manifesto</h3>
+              <button
+                onClick={() => setShowManifest(false)}
+                className="text-sm font-semibold text-[#D96C6C] hover:text-[#2C2C2C] transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+            <div className="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto text-[#5A5A5A] leading-relaxed">
+              <h4 className="font-serif text-xl text-[#2C2C2C] tracking-tight">
+                O Fim da Supermulher e o Início da Estrategista
+              </h4>
+              <p>
+                Nos venderam a ideia de que poderíamos ter tudo. Que deveríamos ser a CEO implacável, a mãe
+                presente, a esposa troféu e a monge zen. Tudo antes das 9 da manhã.
+              </p>
+              <p>Nós compramos essa ideia. E o troco veio em exaustão.</p>
+              <p>
+                Olhamos ao redor e vimos que construímos impérios, mas esquecemos de concretar o alicerce. Nós
+                mesmas.
+              </p>
+              <p>
+                A LIA nasce de um basta. Um basta à produtividade tóxica que glamouriza o burnout. Um basta à
+                perfeição inatingível que gera paralisia. Um basta à culpa por descansar e ao medo de cobrar
+                caro.
+              </p>
+              <p>
+                Nós acreditamos em uma nova liderança. Aquela que aceita a vulnerabilidade não como falha, mas
+                como dado estratégico. Aquela que entende que chorar no banheiro e fechar um contrato milionário
+                no mesmo dia não é incoerência. É a complexidade humana.
+              </p>
+              <p>Estes são os nossos princípios inegociáveis.</p>
+              <p>
+                <span className="font-semibold text-[#2C2C2C]">O Eixo antes do Ruído.</span> O mundo vai gritar
+                urgências. A sua prioridade é manter a lucidez. Se custa a sua paz, é caro demais.
+              </p>
+              <p>
+                <span className="font-semibold text-[#2C2C2C]">Ambição Silenciosa.</span> O sucesso não precisa
+                fazer barulho. Construímos patrimônio e legado em silêncio. Deixamos o resultado falar.
+              </p>
+              <p>
+                <span className="font-semibold text-[#2C2C2C]">Estética é Respeito.</span> Cuidar da pele, da
+                casa e da mente não é futilidade. É a infraestrutura necessária para sustentar o seu império.
+              </p>
+              <p>
+                <span className="font-semibold text-[#2C2C2C]">Autonomia Radical.</span> Dinheiro é liberdade.
+                Emoção é bússola. A mulher que domina ambos é imparável.
+              </p>
+              <p>
+                Nós somos Água e Concreto. Fluidas para contornar o caos, sólidas para sustentar a decisão.
+              </p>
+              <p>
+                Não queremos que você seja uma Supermulher. Queremos que você seja, finalmente, dona da sua
+                própria história. Com falhas. Com medos. Com ambição. E com estratégia.
+              </p>
+              <p>Bem-vinda ao seu Eixo. Bem-vinda à LIA.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Helper components
-const TargetIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+const SolutionCard = ({ title, text }: { title: string; text: string }) => (
+  <div className="bg-white/60 backdrop-blur-md border border-white/40 rounded-3xl p-6 shadow-md transition-transform transition-shadow hover:-translate-y-2 hover:shadow-xl flex flex-col items-start gap-4">
+    <div className="w-12 h-12 rounded-full border border-[#D4AF37]/40 text-[#D4AF37] flex items-center justify-center text-lg font-semibold">
+      •
+    </div>
+    <div className="space-y-2">
+      <p className="font-serif text-2xl tracking-tight text-[#2C2C2C]">{title}</p>
+      <p className="text-sm sm:text-base text-[#5A5A5A] leading-relaxed">{text}</p>
+    </div>
+  </div>
 );
 
-const Step = ({ number, text }: { number: string, text: string }) => (
-  <div className="relative z-10 bg-white p-6 rounded-xl shadow-sm border border-stone-100 flex flex-col md:flex-row items-center gap-4 max-w-lg mx-auto">
-    <div className="w-8 h-8 rounded-full bg-lia-accent flex items-center justify-center text-lia-primary font-bold font-serif shrink-0">
-      {number}
-    </div>
-    <p className="text-stone-700 font-medium">{text}</p>
+const Testimonial = ({ text, author }: { text: string; author: string }) => (
+  <div className="bg-[#FAF9F6] border border-[#D4AF37]/30 rounded-2xl p-6 shadow-sm">
+    <p className="text-base text-[#5A5A5A] leading-relaxed italic">"{text}"</p>
+    <p className="text-sm text-[#2C2C2C] font-semibold uppercase mt-3">{author}</p>
   </div>
 );
 

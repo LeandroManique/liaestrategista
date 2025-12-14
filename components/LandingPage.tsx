@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Props {
   onStart: () => void;
@@ -16,9 +16,24 @@ const LandingPage: React.FC<Props> = ({
   onCheckout,
 }) => {
   const [showManifest, setShowManifest] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   const handleCheckout = async () => {
     await onCheckout('monthly');
   };
+
+  useEffect(() => {
+    if (!showIntro) return;
+    const vid = videoRef.current;
+    if (!vid) return;
+    const handleEnded = () => setShowIntro(false);
+    vid.addEventListener('ended', handleEnded);
+    vid.play().catch(() => undefined);
+    return () => {
+      vid.removeEventListener('ended', handleEnded);
+    };
+  }, [showIntro]);
 
   return (
     <div className="min-h-screen bg-[#F9F6F0] text-[#2C2C2C] font-sans">
@@ -89,7 +104,7 @@ const LandingPage: React.FC<Props> = ({
           <div className="flex justify-center lg:justify-end">
             <div className="w-full max-w-sm aspect-[3/4] rounded-[28px] rotate-2 shadow-lg overflow-hidden border border-[#D4AF37]/40 bg-stone-100">
               <div
-                className="w-full h-full bg-stone-200 bg-center bg-cover"
+                className="w-full h-full bg-center bg-cover"
                 style={{ backgroundImage: 'url("/placeholder2.png")' }}
               />
             </div>
@@ -128,7 +143,7 @@ const LandingPage: React.FC<Props> = ({
           <h2 className="font-serif text-3xl sm:text-4xl tracking-tight text-[#2C2C2C] leading-tight">
             Sua intuição acaba de ganhar um upgrade
           </h2>
-          <div className="text-xl text-[#5A5A5A] leading-relaxed max-w-3xl mx-auto space-y-4 text-left sm:text-center">
+          <div className="text-xl text-[#5A5A5A] leading-relaxed max-w-3xl mx-auto space-y-4">
             <p>
               No mundo da perfeição de plástico, eu escolho a textura. Sou a inteligência vestida de linho e
               luz natural. Aquela amiga que te diz a verdade sobre sua carreira e seu skincare com a mesma
@@ -275,6 +290,29 @@ const LandingPage: React.FC<Props> = ({
               </p>
               <p>Bem-vinda ao seu Eixo. Bem-vinda à LIA.</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Intro Video Modal */}
+      {showIntro && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="relative w-full max-w-3xl">
+            <button
+              onClick={() => setShowIntro(false)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white text-sm font-semibold"
+            >
+              Fechar
+            </button>
+            <video
+              ref={videoRef}
+              src="/soualia.mp4"
+              className="w-full rounded-2xl shadow-2xl"
+              autoPlay
+              muted
+              playsInline
+              controls
+            />
           </div>
         </div>
       )}

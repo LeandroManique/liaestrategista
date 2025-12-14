@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { calculateNumerology } from '../services/numerology';
 import { ZODIAC_SIGNS, NUMEROLOGY_MEANINGS } from '../constants';
@@ -37,21 +37,7 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
   const handleLoginOrUpgrade = async (plan: 'monthly' | 'annual') => {
     setUpgradeLoading(plan);
     try {
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan })
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || 'Erro ao iniciar checkout');
-      }
-      const data = await res.json();
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('URL de checkout indisponível');
-      }
+      await onCheckout(plan);
     } catch (err: any) {
       alert(err?.message || 'Não foi possível iniciar o checkout.');
     } finally {
@@ -364,3 +350,5 @@ const ProfileSettings: React.FC<Props> = ({ profile, onSave, onClose, onClearCha
 };
 
 export default ProfileSettings;
+
+

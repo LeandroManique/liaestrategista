@@ -49,23 +49,21 @@ const LandingPage: React.FC<Props> = ({
 
         <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-8 min-h-screen flex flex-col items-center justify-center text-center space-y-8 py-16 lg:py-24">
           <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl leading-[1.08] tracking-tight text-[#2C2C2C]">
-            Aceite suas Falhas.
-            <br />
-            Lidere sua Vida.
+            Clareza emocional para a vida real.
           </h1>
           <p className="text-lg sm:text-xl text-[#5A5A5A] max-w-3xl leading-relaxed">
-            A LIA é a Inteligência Estratégica que une a autonomia financeira de uma CEO com a
-            vulnerabilidade de quem é humana. Tecnologia para organizar o caos, sem produtividade tóxica.
+            A LIA é uma estrategista de vida que conversa com você, organiza seus pensamentos, lê padrões
+            emocionais e te devolve clareza, leveza e direção. Todos os dias. Sem drama. Sem clichê.
           </p>
           <div className="flex flex-col items-center gap-3">
             <button
               onClick={onStart}
               className="bg-[#D96C6C] text-white rounded-full px-8 py-4 text-sm sm:text-base font-semibold shadow-lg shadow-[#D96C6C]/35 hover:scale-105 transition-transform"
             >
-              Começar meu Eixo Agora
+              Conversar com a LIA
             </button>
-            <p className="text-sm italic text-[#5A5A5A] tracking-wide">
-              Junte-se a mulheres que buscam protagonismo real.
+            <p className="text-sm italic text-[#6B7280] tracking-wide">
+              Uma conversa por dia já muda muita coisa.
             </p>
           </div>
         </div>
@@ -175,17 +173,18 @@ const LandingPage: React.FC<Props> = ({
               Sua Autonomia custa menos que um jantar.
             </h2>
             <p className="text-lg text-[#5A5A5A] leading-relaxed">
-              Invista na sua Marca Própria. Tenha clareza mental, organização estratégica e um espaço de
-              escuta ativa 24/7.
+              Clareza emocional, leveza mental e direção prática para a vida real.
             </p>
             <p className="font-serif text-5xl sm:text-6xl text-[#2C2C2C] leading-tight">R$ 24,90/mês</p>
             <button
               onClick={handleCheckout}
               className="w-full sm:w-auto bg-[#D96C6C] text-white rounded-full px-10 py-4 text-base font-semibold shadow-lg shadow-rose-500/30 hover:scale-105 transition-transform"
             >
-              Assumir o Controle da Minha Jornada
+              Conversar com a LIA
             </button>
-            <p className="text-sm text-[#5A5A5A]">Experimente a leveza. Cancele quando quiser. Sem letras miúdas.</p>
+            <p className="text-sm text-[#5A5A5A]">
+              Uma conversa por dia já muda muita coisa. Cancele quando quiser. Sem letras miúdas.
+            </p>
           </div>
         </div>
       </section>

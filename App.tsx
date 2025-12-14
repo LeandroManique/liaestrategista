@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { UserProfile, Message, AnalysisData, AppView, RelationshipData } from './types';
@@ -124,6 +124,10 @@ const App: React.FC = () => {
 
   const applySubscriptionStatus = useCallback(async (email?: string) => {
     if (!email) return;
+    if (!auth.currentUser) return;
+    const token = await auth.currentUser.getIdToken().catch(() => null);
+    if (!token) return;
+
     const lower = email.toLowerCase();
     if (PREMIUM_WHITELIST.has(lower)) {
       setProfile((prev) => {
@@ -135,7 +139,9 @@ const App: React.FC = () => {
     }
     setCheckingSubscription(true);
     try {
-      const res = await fetch(`/api/subscription-status?email=${encodeURIComponent(lower)}`);
+      const res = await fetch(`/api/subscription-status?email=${encodeURIComponent(lower)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data?.status === 'ACTIVE') {
         setProfile((prev) => {
@@ -149,7 +155,7 @@ const App: React.FC = () => {
     } finally {
       setCheckingSubscription(false);
     }
-  }, [PREMIUM_WHITELIST, profile]);
+  }, [PREMIUM_WHITELIST]);
 
   useEffect(() => {
     if (profile.email) {
@@ -190,7 +196,7 @@ const App: React.FC = () => {
       storage.saveAnalysis(result);
       if (authUid) {
         cloudDb.saveAnalysis(authUid, result).catch((error) => {
-          console.error("Erro ao salvar anÇ­lise na nuvem:", error);
+          console.error("Erro ao salvar anÃ‡Â­lise na nuvem:", error);
         });
       }
     }
@@ -237,7 +243,7 @@ const App: React.FC = () => {
       const warning: Message = {
         id: (Date.now() + 2).toString(),
         role: 'model',
-        text: "Amiga, avisando rapidinho: seu tempo gratuito de hoje está quase acabando. Se quiser seguir comigo sem limite, posso abrir os planos para você escolher.",
+        text: "Amiga, avisando rapidinho: seu tempo gratuito de hoje estÃ¡ quase acabando. Se quiser seguir comigo sem limite, posso abrir os planos para vocÃª escolher.",
         timestamp: Date.now()
       };
       finalMessages = [...finalMessages, warning];
@@ -279,7 +285,7 @@ const App: React.FC = () => {
         console.error("Erro ao salvar mensagens na nuvem:", error);
       });
       cloudDb.saveRelationship(authUid, relData).catch((error) => {
-        console.error("Erro ao salvar relaÇõÇœo na nuvem:", error);
+        console.error("Erro ao salvar relaÃ‡ÃµÃ‡Å“o na nuvem:", error);
       });
     }
     setIsTyping(false);
@@ -315,7 +321,7 @@ const App: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Erro ao salvar perfil na nuvem:", error);
-      alert(error?.message || "NÇœo foi possÇ­vel salvar seu perfil na nuvem.");
+      alert(error?.message || "NÃ‡Å“o foi possÃ‡Â­vel salvar seu perfil na nuvem.");
     }
 
     if (view === AppView.PROFILE) setView(AppView.CHAT);
@@ -355,11 +361,19 @@ const App: React.FC = () => {
   };
 
   const startCheckout = async (plan: 'monthly' | 'annual') => {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      alert('Precisa fazer login para assinar o Premium.');
+      return;
+    }
     setCheckoutLoading(plan);
     try {
+      const token = await auth.currentUser.getIdToken();
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ plan })
       });
       if (!res.ok) {
@@ -370,10 +384,10 @@ const App: React.FC = () => {
       if (data?.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('URL de checkout indisponível');
+        throw new Error('URL de checkout indisponivel');
       }
     } catch (err: any) {
-      alert(err?.message || 'Não foi possível iniciar o checkout.');
+      alert(err?.message || 'Nao foi possivel iniciar o checkout.');
     } finally {
       setCheckoutLoading(null);
     }
@@ -396,7 +410,7 @@ const App: React.FC = () => {
         </div>
         <div>
           <h1 className="font-serif text-lia-primary font-bold leading-tight">{APP_NAME}</h1>
-          <p className="text-[10px] text-lia-secondary tracking-widest uppercase">Inteligência Estratégica Feminina</p>
+          <p className="text-[10px] text-lia-secondary tracking-widest uppercase">InteligÃªncia EstratÃ©gica Feminina</p>
         </div>
       </div>
       
@@ -431,15 +445,15 @@ const App: React.FC = () => {
                 <h3 className="text-xl font-serif text-lia-primary">Tempo de cortesia encerrado</h3>
                 <p className="text-sm text-stone-600 leading-relaxed">
                   Para continuar conversando com a LIA, escolha um plano Premium.
-                  Acesso completo, análises profundas e seu histórico salvo.
+                  Acesso completo, anÃ¡lises profundas e seu histÃ³rico salvo.
                 </p>
                 <div className="bg-stone-50 border border-stone-100 rounded-xl p-3 text-left text-xs text-stone-600">
-                  <p className="font-semibold text-stone-700 mb-1">Você libera:</p>
+                  <p className="font-semibold text-stone-700 mb-1">VocÃª libera:</p>
                   <ul className="list-disc list-inside space-y-1">
                     <li>Conversas ilimitadas</li>
-                    <li>Histórico salvo na nuvem</li>
-                    <li>Análises estratégicas completas</li>
-                    <li>Leituras com fotos e relações</li>
+                    <li>HistÃ³rico salvo na nuvem</li>
+                    <li>AnÃ¡lises estratÃ©gicas completas</li>
+                    <li>Leituras com fotos e relaÃ§Ãµes</li>
                   </ul>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -448,14 +462,14 @@ const App: React.FC = () => {
                     disabled={checkoutLoading === 'monthly'}
                     className="w-full bg-lia-primary text-white py-3 rounded-xl shadow-md hover:bg-stone-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {checkoutLoading === 'monthly' ? 'Abrindo...' : 'Mensal • R$ 24,90'}
+                    {checkoutLoading === 'monthly' ? 'Abrindo...' : 'Mensal â€¢ R$ 24,90'}
                   </button>
                   <button
                     onClick={() => startCheckout('annual')}
                     disabled={checkoutLoading === 'annual'}
                     className="w-full bg-amber-500 text-white py-3 rounded-xl shadow-md hover:bg-amber-400 transition disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {checkoutLoading === 'annual' ? 'Abrindo...' : 'Anual • R$ 97,00'}
+                    {checkoutLoading === 'annual' ? 'Abrindo...' : 'Anual â€¢ R$ 97,00'}
                   </button>
                   <button
                     onClick={() => setShowTrialModal(false)}
@@ -469,13 +483,14 @@ const App: React.FC = () => {
           )}
 
           {view === AppView.LANDING && (
-            <LandingPage 
-              onStart={handleStartJourney} 
-              onLogin={() => setView(AppView.LOGIN)}
-              onOpenTerms={() => setView(AppView.TERMS)}
-              onOpenPrivacy={() => setView(AppView.PRIVACY)}
-            />
-          )}
+          <LandingPage 
+            onStart={handleStartJourney} 
+            onLogin={() => setView(AppView.LOGIN)}
+            onOpenTerms={() => setView(AppView.TERMS)}
+            onOpenPrivacy={() => setView(AppView.PRIVACY)}
+            onCheckout={startCheckout}
+          />
+        )}
 
           {view === AppView.LOGIN && (
             <LoginView 
@@ -502,6 +517,7 @@ const App: React.FC = () => {
               onClose={handleBack}
               onClearChat={storage.clearChat}
               onFullReset={storage.clearAll}
+              onCheckout={startCheckout}
             />
           )}
 
@@ -535,3 +551,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
